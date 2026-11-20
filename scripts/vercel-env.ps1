@@ -16,6 +16,7 @@ foreach ($raw in Get-Content $EnvFile) {
   $name = $line.Substring(0, $i).Trim()
   $value = $line.Substring($i + 1).Trim().Trim('"')
   if (-not $value) { Write-Host "skip  $name (empty)"; continue }
+  if ($name.StartsWith("VERCEL_")) { Write-Host "skip  $name (managed by Vercel)"; continue }
   Write-Host "add   $name"
   # The CLI reads the value from standard input, so it never appears on screen.
   $value | vercel env add $name $Target | Out-Null

@@ -2,7 +2,7 @@
 
 Internal operations system for Sejuk Sejuk Service, a fictional air-conditioner service company. It runs the whole job workflow, **Order → Assignment → Service Completion → Manager / Accounts Review**, and adds a KPI dashboard and an AI operations assistant.
 
-- **Live demo:** _add the Vercel URL here_
+- **Live demo:** https://sejuk-ops-eight.vercel.app
 - **Demo accounts:** listed on the sign-in page under **For reviewers**. There's one shared password for all six accounts.
 
 | Account | Role | Try |

@@ -16,18 +16,19 @@ Internal operations system for Sejuk Sejuk Service, a fictional air-conditioner 
 ## Contents
 
 1. [What was built](#what-was-built)
-2. [Tech stack](#tech-stack)
-3. [Architecture](#architecture)
-4. [Workflow and rules](#workflow-and-rules)
-5. [Modules](#modules)
-6. [How AI is integrated](#how-ai-is-integrated)
-7. [Architecture decisions](#architecture-decisions)
-8. [Assumptions](#assumptions)
-9. [Limitations](#limitations)
-10. [Run locally](#run-locally)
-11. [Deploy](#deploy)
-12. [Project layout](#project-layout)
-13. [Self-assessment](#self-assessment)
+2. [Screenshots](#screenshots)
+3. [Tech stack](#tech-stack)
+4. [Architecture](#architecture)
+5. [Workflow and rules](#workflow-and-rules)
+6. [Modules](#modules)
+7. [How AI is integrated](#how-ai-is-integrated)
+8. [Architecture decisions](#architecture-decisions)
+9. [Assumptions](#assumptions)
+10. [Limitations](#limitations)
+11. [Run locally](#run-locally)
+12. [Deploy](#deploy)
+13. [Project layout](#project-layout)
+14. [Self-assessment](#self-assessment)
 
 ---
 
@@ -46,6 +47,24 @@ Internal operations system for Sejuk Sejuk Service, a fictional air-conditioner 
 | Optional AI: workflow supervisor (final much higher than quoted, no photos) | Partly: rule-based flags plus an AI query | Review queue badges, `flagged_jobs` query |
 | Optional AI: operational insight (overloaded technician) | Done | Dashboard, `technician_workload` query |
 | Optional AI: document understanding | Not done | |
+
+## Screenshots
+
+**Admin and manager (desktop)**
+
+| Operations overview (KPI dashboard) | Job orders |
+|---|---|
+| ![Operations overview: service performance chart, technician leaderboard, jobs by status](docs/screenshots/dashboard.jpg) | ![Job orders list with search, filters and status badges](docs/screenshots/job-orders.jpg) |
+| **New service order** | **Order page** |
+| ![New order form: customer, job and assignment](docs/screenshots/new-order.jpg) | ![Order page: workflow progress, customer and job, service report, history](docs/screenshots/order-page.jpg) |
+| **Review queue (manager)** | **AI assistant** |
+| ![Review queue with money summary and flags to check](docs/screenshots/review-queue.jpg) | ![AI assistant answer with the source rows under Show the data](docs/screenshots/ai-assistant.jpg) |
+
+**Technician (phone)**
+
+| Service report with photo uploads | Job done, WhatsApp the customer |
+|---|---|
+| <img src="docs/screenshots/technician-report.jpg" alt="Technician service report: final amount, payment, two uploaded photos" width="300"> | <img src="docs/screenshots/technician-job-done.jpg" alt="Job done screen with the WhatsApp customer button" width="300"> |
 
 ## Tech stack
 
@@ -233,9 +252,20 @@ Other scripts: `npm run build` (typecheck and production build), `npm run typech
 
 ## Deploy
 
-1. Import the GitHub repo into **Vercel**. The framework preset is Vite; `vercel.json` already routes `/api/*` to the function and everything else to the SPA.
-2. Add every variable from the table above in **Project Settings → Environment Variables**, then deploy.
-3. In **Auth0 → Applications → Sejuk Ops → Settings**, add the Vercel URL (e.g. `https://sejuk-ops.vercel.app`) to **Allowed Callback URLs**, **Allowed Logout URLs** and **Allowed Web Origins**, then save.
+Either import the repo in the Vercel dashboard (paste `.env.local` into **Environment Variables**), or use the CLI from the project folder:
+
+```powershell
+npm install -g vercel
+vercel login
+vercel link                                                   # create the project (Vite is detected)
+powershell -ExecutionPolicy Bypass -File scripts\vercel-env.ps1  # copy .env.local variables to Vercel
+vercel --prod                                                 # build and deploy
+vercel git connect                                            # optional: redeploy on every git push
+```
+
+`vercel.json` already routes `/api/*` to the function and everything else to the SPA. `VITE_` variables are baked in at build time, so redeploy after changing one.
+
+Then, in **Auth0 → Applications → Sejuk Ops → Settings**, add the Vercel URL (e.g. `https://sejuk-ops.vercel.app`) to **Allowed Callback URLs**, **Allowed Logout URLs** and **Allowed Web Origins**, and save.
 
 ## Project layout
 

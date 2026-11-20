@@ -17,9 +17,10 @@ foreach ($raw in Get-Content $EnvFile) {
   $value = $line.Substring($i + 1).Trim().Trim('"')
   if (-not $value) { Write-Host "skip  $name (empty)"; continue }
   if ($name.StartsWith("VERCEL_")) { Write-Host "skip  $name (managed by Vercel)"; continue }
-  Write-Host "add   $name"
-  # The CLI reads the value from standard input, so it never appears on screen.
-  $value | vercel env add $name $Target | Out-Null
+  # VITE_ variables are built into the public page, so Vercel needs them marked as config; the rest stay secret.
+  $type = if ($name.StartsWith("VITE_")) { "config" } else { "secret" }
+  Write-Host "add   $name ($type)"
+  vercel env add $name --environment $Target --type $type --value $value --yes | Out-Null
   if ($LASTEXITCODE -ne 0) { Write-Warning "$name was not added (it may already exist: remove it with 'vercel env rm $name $Target' and run again)." }
 }
 Write-Host "Done. Check with: vercel env ls"

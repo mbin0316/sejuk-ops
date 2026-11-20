@@ -53,14 +53,18 @@ dashboardRoutes.get('/', requireRole('admin', 'manager'), async (c) => {
   const reportsSince = startOf(prevFrom).toISOString()
 
   const sb = db()
-  const [reports, reschedules, orders, technicians, recent] = await Promise.all([
+  const cutoff48h = new Date(now.getTime() - 48 * 3_600_000).toISOString()
+  // Counts are done by the database (head: true returns only the count), so this doesn't grow with order history.
+  const countWhere = (status: OrderStatus) => sb.from('orders').select('id', { count: 'exact', head: true }).eq('status', status)
+  const [reports, reschedules, openJobs, technicians, recent, over48h, ...statusResults] = await Promise.all([
     sb.from('job_reports').select('technician_id, final_amount, completed_at').gte('completed_at', reportsSince),
     sb
       .from('order_events')
       .select('created_at, details, order:orders(technician_id)')
       .eq('action', 'rescheduled')
       .gte('created_at', startOf(from).toISOString()),
-    sb.from('orders').select('status, technician_id, completed_at').limit(10_000),
+    // Only jobs being worked on right now, for each technician's open count.
+    sb.from('orders').select('technician_id').in('status', ['assigned', 'in_progress']).not('technician_id', 'is', null),
     sb.from('technicians').select('id, name, active').order('id'),
     sb
       .from('order_events')
@@ -68,10 +72,12 @@ dashboardRoutes.get('/', requireRole('admin', 'manager'), async (c) => {
       .order('created_at', { ascending: false })
       .order('id', { ascending: false })
       .limit(6),
+    countWhere('job_done').lt('completed_at', cutoff48h),
+    ...ORDER_STATUSES.map(countWhere),
   ])
   const reportRows = check(reports, 'load completed jobs') ?? []
   const rescheduleRows = check(reschedules, 'load reschedules') ?? []
-  const orderRows = check(orders, 'load orders') ?? []
+  const openRows = check(openJobs, 'load open jobs') ?? []
   const techRows = check(technicians, 'load technicians') ?? []
   const recentRows = check(recent, 'load recent activity') ?? []
 
@@ -138,22 +144,22 @@ dashboardRoutes.get('/', requireRole('admin', 'manager'), async (c) => {
     if (row) row.rescheduled++
   }
 
-  // ---- Pipeline: every order by current status ----
-  const statusCounts = Object.fromEntries(ORDER_STATUSES.map((s) => [s, 0])) as Record<OrderStatus, number>
-  let waitingReview = 0
-  let waitingReviewOver48h = 0
-  const cutoff48h = now.getTime() - 48 * 3_600_000
-  for (const o of orderRows) {
-    const status = o.status as OrderStatus
-    statusCounts[status]++
-    if ((status === 'assigned' || status === 'in_progress') && o.technician_id != null) {
-      const row = board.get(Number(o.technician_id))
-      if (row) row.openJobs++
+  // ---- Pipeline: every order by current status (counted in the database) ----
+  const countOf = (r: { count: number | null; error: { message: string } | null }, what: string) => {
+    if (r.error) {
+      console.error(`[dashboard] could not count ${what}:`, r.error.message)
+      throw new HTTPException(500, { message: 'Could not load the dashboard' })
     }
-    if (status === 'job_done') {
-      waitingReview++
-      if (o.completed_at && new Date(String(o.completed_at)).getTime() < cutoff48h) waitingReviewOver48h++
-    }
+    return r.count ?? 0
+  }
+  const statusCounts = Object.fromEntries(
+    ORDER_STATUSES.map((s, i) => [s, countOf(statusResults[i], `${s} orders`)]),
+  ) as Record<OrderStatus, number>
+  const waitingReview = statusCounts.job_done
+  const waitingReviewOver48h = countOf(over48h, 'jobs waiting over 48 hours')
+  for (const o of openRows) {
+    const row = board.get(Number(o.technician_id))
+    if (row) row.openJobs++
   }
 
   // Active technicians, plus anyone inactive who still has numbers in this period.

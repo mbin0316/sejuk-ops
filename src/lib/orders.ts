@@ -1,10 +1,10 @@
 // React Query hooks for orders and technicians. All data comes from /api.
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { CreateOrderInput, OrderDetail, OrderListItem, OrderStatus, Technician } from '../../shared/orders.ts'
+import type { CreateOrderInput, OrderDetail, OrderPage, OrderStatus, Technician } from '../../shared/orders.ts'
 import { apiFetch } from './api.ts'
 import { formatMoney } from './format.ts'
 
-export type OrderFilters = { status?: OrderStatus; technicianId?: number; q?: string }
+export type OrderFilters = { status?: OrderStatus; technicianId?: number; q?: string; page?: number }
 
 export const orderKeys = {
   all: ['orders'] as const,
@@ -28,8 +28,9 @@ export function useOrders(filters: OrderFilters) {
       if (filters.status) params.set('status', filters.status)
       if (filters.technicianId) params.set('technicianId', String(filters.technicianId))
       if (filters.q) params.set('q', filters.q)
+      if (filters.page && filters.page > 1) params.set('page', String(filters.page))
       const qs = params.toString()
-      return apiFetch<{ orders: OrderListItem[] }>(`/orders${qs ? `?${qs}` : ''}`).then((r) => r.orders)
+      return apiFetch<OrderPage>(`/orders${qs ? `?${qs}` : ''}`)
     },
     placeholderData: keepPreviousData,
   })

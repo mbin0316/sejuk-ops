@@ -1,4 +1,4 @@
-import { Plus, Search, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, Search, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { FilterSelect } from '../../components/form.tsx'
@@ -20,6 +20,7 @@ export function OrdersPage() {
     : undefined
   const technicianId = Number(params.get('technician')) || undefined
   const q = params.get('q') ?? ''
+  const page = Math.max(1, Math.floor(Number(params.get('page'))) || 1)
 
   // The search box writes to the URL 300ms after typing stops.
   const [search, setSearch] = useState(q)
@@ -36,14 +37,27 @@ export function OrdersPage() {
         const next = new URLSearchParams(prev)
         if (value) next.set(key, value)
         else next.delete(key)
+        // A new filter or search starts again at page 1.
+        if (key !== 'page') next.delete('page')
         return next
       },
       { replace: true },
     )
   }
 
-  const filters: OrderFilters = { status, technicianId, q: q || undefined }
+  const filters: OrderFilters = { status, technicianId, q: q || undefined, page }
   const orders = useOrders(filters)
+  const rows = orders.data?.orders
+  const total = orders.data?.total ?? 0
+  const pageSize = orders.data?.pageSize ?? 25
+  const pages = Math.max(1, Math.ceil(total / pageSize))
+  const first = total === 0 ? 0 : (page - 1) * pageSize + 1
+  const last = Math.min(page * pageSize, total)
+
+  // If orders were removed or filters narrowed, don't strand the user past the last page.
+  useEffect(() => {
+    if (orders.data && !orders.isPlaceholderData && page > pages) setParam('page', pages > 1 ? String(pages) : '')
+  })
   const technicians = useTechnicians()
   const hasFilters = Boolean(status || technicianId || q)
 
@@ -108,7 +122,9 @@ export function OrdersPage() {
         )}
         {orders.data && (
           <p className="ml-auto text-body-sm text-ink-muted" aria-live="polite">
-            {orders.data.length} {orders.data.length === 1 ? 'order' : 'orders'}
+            {total > pageSize
+              ? `${first === last ? first : `${first}–${last}`} of ${total} orders`
+              : `${total} ${total === 1 ? 'order' : 'orders'}`}
           </p>
         )}
       </div>
@@ -144,7 +160,7 @@ export function OrdersPage() {
                       </td>
                     </tr>
                   ))}
-                {orders.data?.map((o) => (
+                {rows?.map((o) => (
                   <tr
                     key={o.id}
                     onClick={() => navigate(`/orders/${o.id}`)}
@@ -181,7 +197,7 @@ export function OrdersPage() {
                     <td className="px-5 whitespace-nowrap text-caption text-ink-muted">{formatDateTime(o.createdAt)}</td>
                   </tr>
                 ))}
-                {orders.data?.length === 0 && (
+                {rows?.length === 0 && (
                   <tr className="border-t border-line">
                     <td colSpan={7} className="px-5 py-10 text-center text-body-sm text-ink-muted">
                       {hasFilters ? 'No orders match these filters.' : 'No orders yet.'}
@@ -191,6 +207,31 @@ export function OrdersPage() {
               </tbody>
             </table>
           </div>
+        )}
+        {!orders.isError && pages > 1 && (
+          <nav aria-label="Pages" className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-5 py-3">
+            <p className="text-body-sm text-ink-muted">
+              Page {Math.min(page, pages)} of {pages}
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                disabled={page <= 1 || orders.isPlaceholderData}
+                onClick={() => setParam('page', page - 1 > 1 ? String(page - 1) : '')}
+              >
+                <ChevronLeft className="size-5" strokeWidth={1.8} aria-hidden="true" />
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                disabled={page >= pages || orders.isPlaceholderData}
+                onClick={() => setParam('page', String(page + 1))}
+              >
+                Next
+                <ChevronRight className="size-5" strokeWidth={1.8} aria-hidden="true" />
+              </Button>
+            </div>
+          </nav>
         )}
       </Card>
     </>

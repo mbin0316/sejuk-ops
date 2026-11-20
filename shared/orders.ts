@@ -54,6 +54,9 @@ export const reviewNoteSchema = z.object({
 })
 export type ReviewNoteInput = z.infer<typeof reviewNoteSchema>
 
+/** Job orders list: rows per page (GET /api/orders?page=). */
+export const ORDER_PAGE_SIZE = 25
+
 /** POST /api/orders/:id/assign body. */
 export const assignSchema = z.object({ technicianId: z.number().int().positive() })
 
@@ -74,6 +77,15 @@ export type OrderListItem = {
   technician: { id: number; name: string } | null
   createdAt: string
   completedAt: string | null
+}
+
+/** One page of the job orders list. */
+export type OrderPage = {
+  orders: OrderListItem[]
+  /** All orders matching the filters, across every page. */
+  total: number
+  page: number
+  pageSize: number
 }
 
 export type JobReport = {

@@ -104,7 +104,7 @@ New ──assign──▶ Assigned ──start──▶ In progress ──comple
 ## Modules
 
 ### Admin portal (`/orders`, `/orders/new`, `/orders/:id`)
-- **Job orders:** search by order no., customer name or phone digits; filter by status and technician. Managers see it read-only.
+- **Job orders:** search by order no., customer name or phone digits; filter by status and technician. 25 orders per page, newest first, with the total count. The page number is in the URL (`?page=2`), so Back returns to the same page. Managers see it read-only.
 - **New order:** every field in the brief, validated by the same Zod schema as the API. Order numbers (`ORDER0001`, …) come from a database sequence. An order with a technician starts as **Assigned**; one without starts as **New**.
 - **After saving:** an order summary with a **WhatsApp {technician}** button. It opens a `wa.me` link with the job details already written.
 - **Order page:** progress through the 6 steps, customer and job details, the service report with files, assign or reassign, a call button, and the full history.
@@ -134,6 +134,7 @@ New ──assign──▶ Assigned ──start──▶ In progress ──comple
 - **Technician leaderboard:** jobs completed, total amount (sum of final amounts) and reschedules in the period, plus open jobs right now.
 - **Service performance chart:** completed jobs per day going up, rescheduled visits going down. It has hover tooltips and a table version for screen readers.
 - Jobs by status, open orders, completed today vs yesterday, total amount vs the previous period, recent activity, and jobs waiting for review.
+- Status totals are counted by the database, and only the selected period's reports and reschedules are read, so the dashboard doesn't slow down as order history grows.
 
 ### AI assistant (`/assistant`, admin and manager)
 See [How AI is integrated](#how-ai-is-integrated).
@@ -199,7 +200,6 @@ The brief requires this flow: question → interpret → database retrieves → 
 - **WhatsApp isn't sent automatically.** `wa.me` opens a pre-filled chat; a person sends it.
 - **No scheduling.** There are no visit times or calendar, so a reschedule's new date is only noted in the history.
 - **No admin screens for users or technicians.** Accounts are managed in Auth0 and technicians in the database.
-- **The order list shows the newest 300 orders** without pagination. The dashboard aggregates in the function, which is fine for this size of data.
 - **A file removed before submitting** stays in Storage as an unlinked object.
 - **The AI answers one question at a time**, with no follow-ups like "and last week?". Groq's free tier allows about 5 questions a minute before the app falls back to keyword answers.
 - **Shared demo password.** It's shown on the sign-in page for reviewers, so anyone with the link can change demo data. Reset it with `select seed_demo_data();` in Supabase.

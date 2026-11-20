@@ -5,6 +5,7 @@ import {
   ASSIGNABLE_STATUSES,
   ORDER_STATUSES,
   assignSchema,
+  ORDER_PAGE_SIZE,
   createOrderSchema,
   reviewNoteSchema,
   type Attachment,
@@ -12,6 +13,7 @@ import {
   type OrderDetail,
   type OrderEvent,
   type OrderListItem,
+  type OrderPage,
   type OrderStatus,
   type ReviewItem,
   type ReviewQueue,
@@ -217,27 +219,49 @@ const listQuery = z.object({
   status: z.enum(ORDER_STATUSES).optional(),
   technicianId: z.coerce.number().int().positive().optional(),
   q: z.string().trim().max(60).optional(),
+  page: z.coerce.number().int().min(1).max(10_000).default(1),
 })
 
-/** GET /api/orders?status=&technicianId=&q= — newest first. */
+/** GET /api/orders?status=&technicianId=&q=&page= — newest first, ORDER_PAGE_SIZE per page, with the total count. */
 orderRoutes.get('/', requireRole('admin', 'manager'), async (c) => {
-  const { status, technicianId, q } = parseOr400(listQuery, c.req.query())
+  const { status, technicianId, q, page } = parseOr400(listQuery, c.req.query())
+  const from = (page - 1) * ORDER_PAGE_SIZE
+  const empty: OrderPage = { orders: [], total: 0, page, pageSize: ORDER_PAGE_SIZE }
 
-  let query = db().from('orders').select(LIST_COLUMNS).order('created_at', { ascending: false }).limit(300)
-  if (status) query = query.eq('status', status)
-  if (technicianId) query = query.eq('technician_id', technicianId)
+  // Search: only letters, digits and spaces reach the PostgREST filter string.
+  let search: string | null = null
   if (q) {
-    // Only letters, digits and spaces reach the PostgREST filter string.
     const text = q.replace(/[^\p{L}\p{N} ]/gu, ' ').replace(/\s+/g, ' ').trim()
     const digits = q.replace(/\D/g, '')
     const filters = text ? [`order_no.ilike.*${text}*`, `customer_name.ilike.*${text}*`] : []
     if (digits.length >= 3) filters.push(`customer_phone_digits.like.*${digits}*`)
-    if (filters.length === 0) return c.json({ orders: [] })
-    query = query.or(filters.join(','))
+    if (filters.length === 0) return c.json(empty)
+    search = filters.join(',')
   }
 
-  const rows = check(await query, 'load orders')
-  return c.json({ orders: (rows ?? []).map(toListItem) })
+  /** The filtered, newest-first list for rows [start, end], with the total count. */
+  const pageOf = (start: number, end: number) => {
+    let query = db()
+      .from('orders')
+      .select(LIST_COLUMNS, { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .order('order_no', { ascending: false })
+      .range(start, end)
+    if (status) query = query.eq('status', status)
+    if (technicianId) query = query.eq('technician_id', technicianId)
+    if (search) query = query.or(search)
+    return query
+  }
+
+  let result = await pageOf(from, from + ORDER_PAGE_SIZE - 1)
+  // A page past the end (e.g. after filtering) is an empty page with the real total, not an error.
+  if (result.error?.code === 'PGRST103') {
+    const firstRow = await pageOf(0, 0)
+    return c.json({ ...empty, total: check(firstRow, 'count orders') ? (firstRow.count ?? 0) : 0 })
+  }
+  const rows = check(result, 'load orders')
+  const body: OrderPage = { orders: (rows ?? []).map(toListItem), total: result.count ?? 0, page, pageSize: ORDER_PAGE_SIZE }
+  return c.json(body)
 })
 
 /** POST /api/orders — admin creates an order, optionally assigning a technician straight away. */

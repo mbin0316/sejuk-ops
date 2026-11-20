@@ -257,20 +257,24 @@ design/                 UI/UX guidance (tokens, screens)
 
 ## Self-assessment
 
-_Draft: edit freely._
+### What works well
 
-**What went well**
-- **Complete workflow:** the full six-status workflow runs end to end. The rules are enforced by the API, not just hidden in the UI, and every step is recorded with who and when.
-- **Contained AI:** the AI assistant meets the brief's restriction strictly. The model only picks from a fixed menu, the server runs the query, and each answer shows the rows it was based on. It still works without an AI key.
-- **Consistent UI:** desktop for the office and a phone view for technicians, built on one design system.
+- **The whole workflow runs end to end.** An order can go from New to Closed, and every step is saved to `order_events`, so you can see who did what and when.
+- **The rules live in the API, not just the UI.** A button being hidden isn't what stops someone. The server checks the role, who owns the job and the current status on every request. For example, only the assigned technician can complete a job. See [server/routes/](server/routes/).
+- **The AI can't touch the database.** It only picks a query from a fixed list of 8. The server runs that query and gives the AI the results to word the answer. If there's no AI key, keyword rules and templates answer instead. See [server/assistant/](server/assistant/).
+- **One codebase for both screens.** A desktop app for the office and a phone view for technicians, sharing the same components and design tokens.
 
-**Trade-offs I made**
-- **WhatsApp:** `wa.me` links instead of the WhatsApp Business API, to stay within the brief and avoid paid setup.
-- **Uploads:** signed upload URLs, the one place the browser talks to Storage, to support phone photos and videos on serverless.
-- **Testing:** scripted end-to-end checks against the real database instead of a formal test suite, given the time.
+### Trade-offs
 
-**What I'd do next**
-1. Automated tests: API route tests for each workflow rule, plus a Playwright run through the full order lifecycle.
-2. Visit scheduling, so reschedules carry a real date and time slot.
-3. An AI supervisor summary on the dashboard, and document understanding for receipts or quotation PDFs.
-4. Admin screens for technicians and users, and pagination for the order list.
+| Choice | Why | Cost |
+|---|---|---|
+| WhatsApp through `wa.me` links | It's what the brief asks for. No business account or paid API needed. | Someone still has to press **Send**. |
+| The browser uploads files directly to Storage (signed URLs) | Vercel caps a request at about 4.5 MB, and phone photos and videos are often bigger. | It's the one place the browser talks to Supabase. Each URL works once, for one file in that order's folder. |
+| Scripted checks instead of a test suite | Not enough time to write proper tests. Each phase was checked with scripts against the real database, and by hand in the browser. | No `npm test`, so changes have to be rechecked by hand. |
+
+### Next steps
+
+1. **Tests:** API tests for each workflow rule, and one Playwright test that takes an order from New to Closed.
+2. **Scheduling:** give each visit a date and time slot, so a reschedule moves a real appointment.
+3. **AI:** a supervisor summary on the dashboard, and reading details from uploaded receipts or quotation PDFs.
+4. **Admin tools:** screens to manage technicians and users, and pagination for the order list.

@@ -1,0 +1,56 @@
+/* Sejuk Ops design tokens — midnight navy (option A).
+   Source of truth: tokens.json. Import once at the app root. */
+@import url("https://fonts.googleapis.com/css2?family=Lexend:wght@400;500&display=swap");
+
+:root {
+  /* Colour: surfaces */
+  --navy-900: #1e2a44;      /* sidebar, hero chart panel, dark primary button */
+  --navy-800: #33415e;      /* inactive icon chips / pills inside navy */
+  --page: #f3f6fb;          /* page background */
+  --surface: #ffffff;       /* cards, inputs, sheets */
+  --border: #e3e8f0;        /* hairlines, input outlines, tracks */
+
+  /* Colour: text */
+  --ink: #1a2235;           /* primary text on page/surface */
+  --ink-muted: #5b6478;     /* secondary text, labels */
+  --on-navy: #ffffff;       /* primary text on navy */
+  --on-navy-muted: #a9b4c8; /* axis labels / captions on navy */
+  --on-navy-soft: #c9d1e0;  /* inactive nav icons, legend text on navy */
+
+  /* Colour: accent */
+  --accent: #6c7cf0;        /* chart line, progress fill, selected, "next" — NOT behind body text */
+  --accent-strong: #4f5fd6; /* primary buttons + highlight card (white text 5.3:1) */
+  --accent-text: #3f4fc4;   /* links, accent text on white / accent-tint */
+  --accent-tint: #e8ebfd;   /* progress track, avatar bg, "assigned" badge bg */
+
+  /* Colour: job status (mark / badge bg / badge text) */
+  --success: #3fc1a5;  --success-tint: #e2f6f1;  --success-text: #0f7a63;
+  --danger:  #f07a6a;  --danger-tint:  #fdecea;  --danger-text:  #b5402f;
+  --warning: #f5b544;  --warning-tint: #fef4e0;  --warning-text: #8a5a00;
+
+  /* Type */
+  --font-sans: "Lexend", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* Spacing */
+  --space-4: 4px;  --space-8: 8px;  --space-12: 12px;
+  --space-16: 16px; --space-24: 24px; --space-32: 32px;
+
+  /* Radius — soft everywhere, never square */
+  --radius-sm: 10px;    /* inputs, selects */
+  --radius-btn: 12px;   /* buttons, icon chips, nav items */
+  --radius-md: 16px;    /* cards, KPI tiles, list rows */
+  --radius-lg: 22px;    /* sidebar, hero panel, highlight card, bottom tab bar */
+  --radius-pill: 999px; /* badges, segmented toggles, avatars, progress bars */
+
+  /* Elevation (use sparingly) */
+  --shadow-card: 0 1px 2px rgba(30, 42, 68, 0.06);
+}
+
+/* Type scale (two weights only: 400, 500) */
+.t-metric  { font: 500 32px/38px var(--font-sans); }
+.t-hero    { font: 500 36px/40px var(--font-sans); }
+.t-title   { font: 500 24px/32px var(--font-sans); }
+.t-heading { font: 500 18px/26px var(--font-sans); }
+.t-body    { font: 400 15px/22px var(--font-sans); }
+.t-label   { font: 500 13px/18px var(--font-sans); }
+.t-caption { font: 400 12px/16px var(--font-sans); }

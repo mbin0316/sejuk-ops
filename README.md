@@ -79,20 +79,7 @@ Internal operations system for Sejuk Sejuk Service, a fictional air-conditioner 
 
 ## Architecture
 
-```
- Browser (React SPA)                         Vercel function: /api (Hono)                    Supabase
- ───────────────────                         ────────────────────────────                    ────────
- Admin / Manager desktop  ──┐                 1. verify Auth0 JWT (JWKS)                      Postgres
- Technician phone view    ──┼─ HTTPS + JWT ─▶ 2. check role                    ── service ──▶ orders, job_reports,
-                            │                 3. check workflow rules             key         attachments,
- Auth0 Universal Login ◀────┘                 4. read / write + audit event                   order_events,
-   (roles in token claims)                                                                    technicians
-                                              /api/assistant ── fixed queries ─┐
-                                                     │                         │              Storage
-                                                     └── Groq / Claude ◀───────┘              job-files (private)
-                                                         (interpret + format only)                ▲
- File bytes ── one-time signed upload URL (issued by the API, one path per file) ─────────────────┘
-```
+![Sejuk Ops system architecture: users, Vercel (React SPA and Hono API), Auth0, Supabase Postgres and Storage, Groq or Claude, WhatsApp links, and the six-step workflow](docs/architecture.webp)
 
 - **One API, one function:** every `/api/*` request is rewritten to `api/index.ts`, and Hono routes it. That keeps all the rules in one place and stays within the free Vercel plan's function limit.
 - **The browser never queries Supabase.** Every table has RLS on with no policies, and the public roles have no table grants. Only the API's server-side key can read or write. The one exception is file bytes, explained under [decisions](#architecture-decisions).
